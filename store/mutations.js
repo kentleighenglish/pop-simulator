@@ -5,7 +5,7 @@ export const updateParamsType = "@updateParams";
 
 export default {
 	[setPointsType] (state, { points }) {
-		set(state, "points", [points[0]]);
+		set(state, "points", points);
 	},
 	[updateParamsType] (state, params) {
 		set(state, "params", { ...state.params, ...params });
