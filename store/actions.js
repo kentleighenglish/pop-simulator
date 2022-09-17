@@ -1,4 +1,4 @@
-import { setPointsType, updateParamsType } from './mutations';
+import { setDatasetsType, updateParamsType } from './mutations';
 
 export const updateParams = ({ commit }, params = {}) => {
 	commit(updateParamsType, params);
@@ -12,7 +12,7 @@ export const recalculate = async ({ state: { params }, commit }, { startingIndex
 		},
 		body: JSON.stringify({ params })
 	});
-	const { points = [] } = await response.json();
+	const { datasets = [] } = await response.json();
 
-	commit(setPointsType, { points });
+	commit(setDatasetsType, { datasets });
 }

@@ -1,11 +1,11 @@
 import { set } from "vue";
 
-export const setPointsType = "@setPoints";
+export const setDatasetsType = "@setDatasets";
 export const updateParamsType = "@updateParams";
 
 export default {
-	[setPointsType] (state, { points }) {
-		set(state, "points", points);
+	[setDatasetsType] (state, { datasets }) {
+		set(state, "datasets", datasets);
 	},
 	[updateParamsType] (state, params) {
 		set(state, "params", { ...state.params, ...params });

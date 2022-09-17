@@ -18,14 +18,25 @@ app.all("/recalculate", (req, res) => {
 	const { params = {} } = req.body;
 
 	const points = [];
+	const datasets = [];
 	for (let i = 0; i < params.years - 1; i++) {
 		const lastPoint = points[i - 1] || null;
 
 		const point = calculatePoint(lastPoint, params);
-		points.push(point);
+		points.push({ index: i, ...point });
 	}
 
-	res.json({ points });
+	datasets.push({
+		label: "Population",
+		data: points,
+		backgroundColor: "rgba(97, 175, 184, 1)",
+		parsing: {
+			yAxisKey: "population",
+			xAxisKey: "index"
+		}
+	})
+
+	res.json({ datasets });
 });
 
 export default app;

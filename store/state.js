@@ -1,8 +1,8 @@
 export default () => ({
 	params: {
 		initialPop: 10,
-		years: 1000,
+		years: 100,
 		events: []
 	},
-	points: [],
+	datasets: [],
 });
