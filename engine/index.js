@@ -4,7 +4,7 @@ import seedrandom from "seedrandom";
 
 import {
 	createInitialPops,
-	updateIndividual
+	updateIndividuals,
 } from './individual';
 import {
 	createSettlement,
@@ -28,13 +28,7 @@ const calculatePoint = async (prev, params) => {
 		}
 	}
 
-	let individuals = await Promise.all(prev.individuals.map(async (i) => {
-		const settlement = prev.settlements.find(settlement => settlement.key === i.settlement);
-
-		return await updateIndividual(i, settlement, prev.individual, params);
-	}));
-
-	individuals = individuals.filter(i => !i.dead);
+	const individuals = await updateIndividuals(prev.individuals, prev.settlements, params);
 
 	const settlements = await Promise.all(prev.settlements.map(async (settlement) => {
 		const pops = individuals.filter(i => i.settlement === settlement.key);

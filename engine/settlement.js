@@ -41,6 +41,7 @@ export const createSettlement = (params, source = {}) => {
 }
 
 export const updateSettlement = (individuals, settlement, params) => {
+	settlement.population = individuals.length;
 
 	return settlement;
 }

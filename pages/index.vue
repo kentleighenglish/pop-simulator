@@ -44,8 +44,15 @@ export default {
 			step: "step"
 		}),
 		onParamUpdate(e) {
+			const type = e.target.type;
+			let value = e.target.value;
+
+			if (type === "number") {
+				value = Number(value);
+			}
+
 			this.updateParams({
-				[e.target.name]: e.target.value
+				[e.target.name]: value
 			});
 
 			this.recalculate();

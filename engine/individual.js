@@ -43,11 +43,11 @@ const calculateHappiness = settlement => {
 	const { stability, supply, housing, population } = settlement;
 	const freeHouses = Math.max(0, housing - population);
 
-	const happinessStabilityMod = percentageToModifier(stability, 25, { lowerStart: 30, upperEnd: 60 });
-	const happinessSupplyMod = percentageToModifier(supply, 15, { lowerStart: 5, lowerEnd: 0, upperStart: 10, upperEnd: 50 });
+	const stabilityMod = percentageToModifier(stability, 25, { lowerStart: 30, upperEnd: 60 });
+	const supplyMod = percentageToModifier(supply, 15, { lowerStart: 5, lowerEnd: 0, upperStart: 10, upperEnd: 50 });
 	const housingMod = percentageToModifier(freeHouses, 20, { lowerStart: 2, lowerEnd: 0, upperStart: 7, upperEnd: 20 });
 
-	return clamp(40 + happinessStabilityMod + happinessSupplyMod + housingMod);
+	return clamp(40 + stabilityMod + supplyMod + housingMod);
 }
 
 const calculateRole = (individual, settlement, params) => {
@@ -56,6 +56,25 @@ const calculateRole = (individual, settlement, params) => {
 	const roleIndex = randomRange(0, rolesArray.length, individual.seed, roleWeights);
 
 	return rolesArray[roleIndex];
+}
+
+const calculatePregnancy = (individual, partner, settlement, params) => {
+	const { stability, supply, housing, population } = settlement;
+	const freeHouses = Math.max(0, housing - population);
+
+	const stabilityMod = percentageToModifier(stability, 25, { lowerStart: 30, upperEnd: 60 });
+	const supplyMod = percentageToModifier(supply, 15, { lowerStart: 5, lowerEnd: 0, upperStart: 10, upperEnd: 50 });
+	const housingMod = percentageToModifier(freeHouses, 5, { lowerStart: 2, lowerEnd: 0, upperStart: 1, upperEnd: 10 });
+
+	let partnerMod = 0;
+	if (partner.role !== "soldier" || (partner.role === "soldier" && settlement.focus !== "war")) {
+		partnerMod = 30;
+	}
+	const diceRoll = seedrandom(individual.age + params.base)();
+
+	const pregnancyChance = 10 + stabilityMod + supplyMod + housingMod + partnerMod;
+
+	return pregnancyChance > diceRoll * 100;
 }
 
 const updatePartners = (individuals) => {
@@ -74,7 +93,11 @@ const updatePartners = (individuals) => {
 			}
 		}
 
-		const oppositeSex = individuals.filter(i => (i.male !== individual.male && i.age >= 15));
+		const oppositeSex = individuals.filter(i => (
+			i.male !== individual.male &&
+			i.age >= 15 &&
+			!i.partner
+		));
 		oppositeSex.sort((a, b) => {
 			const aDiff = Math.abs(a.age - individual.age);
 			const bDiff = Math.abs(b.age - individual.age);
@@ -139,13 +162,44 @@ export const createIndividual = (settlement, parentSeed, { base }) => {
 	};
 }
 
-export const updateIndividual = (individual, settlement, individuals, { base }) => {
-	individual.age++;
+export const updateIndividuals = (individuals, settlements, params) => {
+	const output = [];
 
-	const deathChance = percentageToModifier(individual.age, 100, { lowerStart: 0, lowerEnd: 0, upperStart: 50, upperEnd: 110 });
-	if (deathChance > Math.random() * 100) {
-		individual.dead = true;
+	for(const individual of individuals) {
+		const settlement = settlements.find(settlement => settlement.key === individual.settlement);
+
+		individuals = individuals.filter(i => !i.dead);
+		individual.age++;
+
+		const deathChance = percentageToModifier(individual.age, 100, {
+			lowerStart: 0,
+			lowerEnd: 0,
+			upperStart: 40,
+			upperEnd: 90
+		});
+		const diceRoll = seedrandom(individual.age + params.base)();
+		if (deathChance > diceRoll * 100) {
+			individual.dead = true;
+		}
+
+		if (!individual.male && individual.partner) {
+			const partner = individuals.find(i => i.key === individual.partner);
+			if (partner) {
+				individual.pregnant = calculatePregnancy(individual, partner, settlement, params);
+			}
+		}
+
+		output.push(individual);
 	}
 
-	return individual;
+
+	output.filter(i => i.pregnant).forEach(individual => {
+		const settlement = settlements.find(s => s.key === individual.settlement);
+		const partner = individuals.find(p => p.key === individual.partner);
+
+		const parentSeed = individual.seed + (partner?.seed || 'nopartner');
+		output.push(createIndividual(settlement, parentSeed, params));
+	});
+
+	return output;
 }
