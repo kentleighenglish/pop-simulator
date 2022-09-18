@@ -58,10 +58,45 @@ const calculateRole = (individual, settlement, params) => {
 	return rolesArray[roleIndex];
 }
 
+const updatePartners = (individuals) => {
+	return individuals.map(individual => {
+		if (individual.partner) {
+			const partnerIndex = individuals.findIndex(partner => partner.key === individual.partner);
+			const partner = individuals[partnerIndex];
+
+			if (partner.dead || individual.dead) {
+				individual.partner = null;
+				individuals[partnerIndex].partner = null;
+			}
+
+			if (individual.partner) {
+				return individual;
+			}
+		}
+
+		const oppositeSex = individuals.filter(i => (i.male !== individual.male && i.age >= 15));
+		oppositeSex.sort((a, b) => {
+			const aDiff = Math.abs(a.age - individual.age);
+			const bDiff = Math.abs(b.age - individual.age);
+
+			return aDiff - bDiff;
+		});
+		if (oppositeSex.length) {
+			const partner = oppositeSex[0];
+			const partnerIndex = individuals.findIndex(i => partner.key === i.key);
+
+			individuals[partnerIndex].partner = individual.key;
+
+			individual.partner = partner.key;
+		}
+		return individual;
+	});
+}
+
 export const createInitialPops = (count, settlement, params) => {
 	settlement.population = count;
 
-	const output = [];
+	let output = [];
 	for (let i = 0; i < count; i++) {
 		const base = seedrandom(i + params.base)();
 		const individual = createIndividual(settlement, base, params);
@@ -71,24 +106,10 @@ export const createInitialPops = (count, settlement, params) => {
 
 		individual.role = calculateRole(individual, settlement, params);
 
-		const oppositeSex = output.filter(i => (i.male !== individual.male && i.age >= 15));
-		oppositeSex.sort((a, b) => {
-			const aDiff = Math.abs(a.age - individual.age);
-			const bDiff = Math.abs(b.age - individual.age);
-
-			return aDiff - bDiff;
-		});
-		if (oppositeSex.length) {
-			const partner = oppositeSex[0];
-			const partnerIndex = output.findIndex(i => partner.key === i.key);
-
-			output[partnerIndex].partner = individual.key;
-
-			individual.partner = partner.key;
-		}
-
 		output.push(individual);
 	}
+
+	output = updatePartners(output);
 
 	return output;
 }
@@ -118,7 +139,7 @@ export const createIndividual = (settlement, parentSeed, { base }) => {
 	};
 }
 
-export const updateIndividual = (individual, settlement, { base }) => {
+export const updateIndividual = (individual, settlement, individuals, { base }) => {
 	individual.age++;
 
 	return individual;

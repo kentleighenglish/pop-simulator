@@ -28,11 +28,13 @@ const calculatePoint = async (prev, params) => {
 		}
 	}
 
-	const individuals = await Promise.all(prev.individuals.map(async (i) => {
+	let individuals = await Promise.all(prev.individuals.map(async (i) => {
 		const settlement = prev.settlements.find(settlement => settlement.key === i.settlement);
 
-		return await updateIndividual(i, settlement, params);
+		return await updateIndividual(i, settlement, prev.individual, params);
 	}));
+
+	individuals = individuals.filter(i => !i.dead);
 
 	const settlements = await Promise.all(prev.settlements.map(async (settlement) => {
 		const pops = individuals.filter(i => i.settlement === settlement.key);
