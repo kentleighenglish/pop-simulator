@@ -14,6 +14,13 @@
 			type="number"
 			@input="onParamUpdate($event)"
 		/>
+		<input
+			placeholder="Seed"
+			:value="params.seed"
+			name="seed"
+			type="number"
+			@input="onParamUpdate($event)"
+		/>
 		<DataOutput />
 	</div>
 </template>
