@@ -44,7 +44,7 @@ const calculatePoint = async (prev, params) => {
 	return {
 		individuals,
 		settlements,
-		population: prev.population
+		population: individuals.length
 	}
 }
 

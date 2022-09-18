@@ -142,5 +142,10 @@ export const createIndividual = (settlement, parentSeed, { base }) => {
 export const updateIndividual = (individual, settlement, individuals, { base }) => {
 	individual.age++;
 
+	const deathChance = percentageToModifier(individual.age, 100, { lowerStart: 0, lowerEnd: 0, upperStart: 50, upperEnd: 110 });
+	if (deathChance > Math.random() * 100) {
+		individual.dead = true;
+	}
+
 	return individual;
 }
