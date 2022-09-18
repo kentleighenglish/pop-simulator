@@ -3,53 +3,45 @@ import bodyParser from "body-parser";
 import seedrandom from "seedrandom";
 
 import {
-	createInitialPops
+	createInitialPops,
+	updateIndividual
 } from './individual';
 import {
-	createSettlement
+	createSettlement,
+	updateSettlement
 } from './settlement';
 
 const app = Express();
 
-// const examplePoint = {
-// 	population: 0,
-// 	individuals: [{
-// 		key: 'i1',
-// 		settlement: 's1',
-// 		happiness: 0,
-// 		age: 0,
-// 		health: 0,
-// 		strength: 0,
-// 		male: true,
-// 		role: '' // farmer, gatherer, hunter, soldier, builder, leader, inventor
-// 	}],
-// 	settlements: [{
-// 		key: 's1',
-// 		supply: 0,
-// 		housing: 0,
-// 		stability: 0,
-// 		environment: 0, // the habitability of the location
-// 		technologies: [{
-// 			key: 't1',
-// 			effects: []
-// 		}],
-// 	}]
-// }
-
 const calculatePoint = (prev, params) => {
 	if (!prev) {
-		const settlement = createSettlement(params);
+		const { initialPop = 1 } = params;
 
-		const { initialPop = 0 } = params;
+		const settlement = createSettlement(params, { population: initialPop });
+
 		const individuals = createInitialPops(initialPop, settlement, params);
 
 		return {
 			individuals: individuals.map(i => ({ ...i, settlement: settlement.key })),
+			settlements: [settlement],
 			population: initialPop
 		}
 	}
 
+	const individuals = prev.individuals.map(i => {
+		const settlement = prev.settlements.find(settlement => settlement.key === i.settlement);
+
+		return updateIndividual(i, settlement, params);
+	});
+
+	const settlements = prev.settlements.map(settlement => {
+		const pops = individuals.filter(i => i.settlement === settlement.key);
+		return updateSettlement(pops, settlement, params);
+	});
+
 	return {
+		individuals,
+		settlements,
 		population: prev.population
 	}
 }

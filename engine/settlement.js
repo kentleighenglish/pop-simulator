@@ -20,7 +20,7 @@ import short from "short-uuid";
 // ];
 
 const calculateEnvironment = (source = {}, { base }) => {
-	const individualsAssist = (source?.individual || 1) * 2.5;
+	const individualsAssist = (source?.population || 1) * 2.5;
 
 	return Math.floor(Math.min(100, base + individualsAssist));
 }
@@ -38,4 +38,9 @@ export const createSettlement = (params, source = {}) => {
 		environment,
 		technologies
 	}
+}
+
+export const updateSettlement = (individuals, settlement, params) => {
+
+	return settlement;
 }
