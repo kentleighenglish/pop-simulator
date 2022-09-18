@@ -64,17 +64,30 @@ export const createInitialPops = (count, settlement, params) => {
 	const output = [];
 	for (let i = 0; i < count; i++) {
 		const base = seedrandom(i + params.base)();
-		const initial = createIndividual(settlement, base, params);
+		const individual = createIndividual(settlement, base, params);
 
-		const age = randomRange(20, 50, base);
-		initial.age = age;
+		const age = randomRange(20, 50, base + (params.base / 100));
+		individual.age = age;
 
-		const role = calculateRole(initial, settlement, params);
+		individual.role = calculateRole(individual, settlement, params);
 
-		output.push({
-			...initial,
-			role
+		const oppositeSex = output.filter(i => (i.male !== individual.male && i.age >= 15));
+		oppositeSex.sort((a, b) => {
+			const aDiff = Math.abs(a.age - individual.age);
+			const bDiff = Math.abs(b.age - individual.age);
+
+			return aDiff - bDiff;
 		});
+		if (oppositeSex.length) {
+			const partner = oppositeSex[0];
+			const partnerIndex = output.findIndex(i => partner.key === i.key);
+
+			output[partnerIndex].partner = individual.key;
+
+			individual.partner = partner.key;
+		}
+
+		output.push(individual);
 	}
 
 	return output;
