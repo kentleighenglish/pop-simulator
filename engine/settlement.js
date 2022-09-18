@@ -12,6 +12,13 @@ import short from "short-uuid";
 // 		}],
 // 	}]
 
+// const settlementFocus = [
+// 	"supply",
+// 	"growth",
+// 	"technology",
+// 	"war",
+// ];
+
 const calculateEnvironment = (source = {}, { base }) => {
 	const individualsAssist = (source?.individual || 1) * 2.5;
 
@@ -27,6 +34,7 @@ export const createSettlement = (params, source = {}) => {
 		supply: 0,
 		housing: 0,
 		stability: 0,
+		focus: "supply",
 		environment,
 		technologies
 	}

@@ -56,30 +56,35 @@ const calculatePoint = (prev, params) => {
 
 app.use(bodyParser.json())
 app.all("/recalculate", (req, res) => {
-	const { params = {} } = req.body;
+	try {
+		const { params = {} } = req.body;
 
-	params.base = seedrandom(params.seed)() * 100;
+		params.base = seedrandom(params.seed)() * 100;
 
-	const points = [];
-	const datasets = [];
-	for (let i = 0; i < params.years - 1; i++) {
-		const lastPoint = points[i - 1] || null;
+		const points = [];
+		const datasets = [];
+		for (let i = 0; i < params.years - 1; i++) {
+			const lastPoint = points[i - 1] || null;
 
-		const { population } = calculatePoint(lastPoint, params);
-		points.push({ index: i, population });
-	}
-
-	datasets.push({
-		label: "Population",
-		data: points,
-		backgroundColor: "rgba(97, 175, 184, 1)",
-		parsing: {
-			yAxisKey: "population",
-			xAxisKey: "index"
+			const { population } = calculatePoint(lastPoint, params);
+			points.push({ index: i, population });
 		}
-	})
 
-	res.json({ datasets });
+		datasets.push({
+			label: "Population",
+			data: points,
+			backgroundColor: "rgba(97, 175, 184, 1)",
+			parsing: {
+				yAxisKey: "population",
+				xAxisKey: "index"
+			}
+		})
+
+		res.json({ datasets });
+	} catch (e) {
+		console.error(e);
+		res.json({ datasets: [] });
+	}
 });
 
 export default app;
