@@ -13,7 +13,7 @@ import {
 
 const app = Express();
 
-const calculatePoint = (prev, params) => {
+const calculatePoint = async (prev, params) => {
 	if (!prev) {
 		const { initialPop = 1 } = params;
 
@@ -28,16 +28,16 @@ const calculatePoint = (prev, params) => {
 		}
 	}
 
-	const individuals = prev.individuals.map(i => {
+	const individuals = await Promise.all(prev.individuals.map(async (i) => {
 		const settlement = prev.settlements.find(settlement => settlement.key === i.settlement);
 
-		return updateIndividual(i, settlement, params);
-	});
+		return await updateIndividual(i, settlement, params);
+	}));
 
-	const settlements = prev.settlements.map(settlement => {
+	const settlements = await Promise.all(prev.settlements.map(async (settlement) => {
 		const pops = individuals.filter(i => i.settlement === settlement.key);
-		return updateSettlement(pops, settlement, params);
-	});
+		return await updateSettlement(pops, settlement, params);
+	}));
 
 	return {
 		individuals,
@@ -47,7 +47,7 @@ const calculatePoint = (prev, params) => {
 }
 
 app.use(bodyParser.json())
-app.all("/recalculate", (req, res) => {
+app.all("/recalculate", async (req, res) => {
 	try {
 		const { params = {} } = req.body;
 
@@ -58,8 +58,8 @@ app.all("/recalculate", (req, res) => {
 		for (let i = 0; i < params.years - 1; i++) {
 			const lastPoint = points[i - 1] || null;
 
-			const { population } = calculatePoint(lastPoint, params);
-			points.push({ index: i, population });
+			const point = await calculatePoint(lastPoint, params);
+			points.push({ index: i, ...point });
 		}
 
 		datasets.push({
