@@ -23,12 +23,18 @@ const calculatePoint = async (prev, params) => {
 
 		return {
 			individuals: individuals.map(i => ({ ...i, settlement: settlement.key })),
+			dead: [],
+			born: [],
 			settlements: [settlement],
 			population: initialPop
 		}
 	}
 
-	const individuals = await updateIndividuals(prev.individuals, prev.settlements, params);
+	const {
+		individuals,
+		born,
+		dead,
+	} = await updateIndividuals(prev.individuals, prev.settlements, params);
 
 	const settlements = await Promise.all(prev.settlements.map(async (settlement) => {
 		const pops = individuals.filter(i => i.settlement === settlement.key);
@@ -37,6 +43,8 @@ const calculatePoint = async (prev, params) => {
 
 	return {
 		individuals,
+		born,
+		dead,
 		settlements,
 		population: individuals.length
 	}
@@ -50,7 +58,6 @@ app.all("/recalculate", async (req, res) => {
 		params.base = seedrandom(params.seed)() * 100;
 
 		const points = [];
-		const datasets = [];
 		for (let i = 0; i < params.years - 1; i++) {
 			const lastPoint = points[i - 1] || null;
 
@@ -58,17 +65,54 @@ app.all("/recalculate", async (req, res) => {
 			points.push({ index: i, ...point });
 		}
 
-		datasets.push({
-			label: "Population",
-			data: points,
-			backgroundColor: "rgba(97, 175, 184, 1)",
-			parsing: {
-				yAxisKey: "population",
-				xAxisKey: "index"
-			}
-		})
+		const dataPayload = points.reduce((acc, { index, population, dead, born }) => ([
+			...acc,
+			{ index, population, dead: dead.length, born: born.length }
+		]), []);
 
-		res.json({ datasets });
+		const datasets = [
+			{
+				label: "Population",
+				backgroundColor: "rgba(97, 175, 184, 1)",
+				scales: {
+					x: {
+						stacked: true
+					},
+				},
+				parsing: {
+					yAxisKey: "population",
+					xAxisKey: "index"
+				}
+			},
+			{
+				label: "Dead",
+				backgroundColor: "#FF784F",
+				scales: {
+					x: {
+						stacked: true
+					},
+				},
+				parsing: {
+					yAxisKey: "dead",
+					xAxisKey: "index"
+				}
+			},
+			{
+				label: "Born",
+				backgroundColor: "#A1E887",
+				scales: {
+					x: {
+						stacked: true
+					},
+				},
+				parsing: {
+					yAxisKey: "born",
+					xAxisKey: "index"
+				}
+			}
+		];
+
+		res.json({ data: dataPayload, datasets });
 	} catch (e) {
 		console.error(e);
 		res.json({ datasets: [] });

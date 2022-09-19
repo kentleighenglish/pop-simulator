@@ -12,7 +12,9 @@ export const recalculate = async ({ state: { params }, commit }, { startingIndex
 		},
 		body: JSON.stringify({ params })
 	});
-	const { datasets = [] } = await response.json();
+	const { data, datasets = [] } = await response.json();
 
-	commit(setDatasetsType, { datasets });
+	commit(setDatasetsType, {
+		datasets: datasets.map(d => ({ ...d, data }))
+	});
 }

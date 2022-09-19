@@ -18,12 +18,13 @@ const getRoleWeight = (individual, settlement) => {
 		out.child += 100;
 	} else {
 		out.soldier += individual.male ? 10 : -30;
-		out.builder = 20;
+		out.builder = (settlement.housing > settlement.population) ? 5 : 15;
 
 		if (settlement.focus === "supply") {
-			out.hunter += individual.male ? 20 : 5;
-			out.farmer = 20;
-			out.gatherer += individual.male ? 10 : 30;
+			out.hunter += individual.male ? 25 : 15;
+			out.farmer = 30;
+			out.gatherer += individual.male ? 15 : 35;
+			out.soldier = individual.male ? 5 : -30;
 		}
 		if (settlement.focus === "growth") {
 			out.builder += 30;
@@ -40,14 +41,20 @@ const getRoleWeight = (individual, settlement) => {
 
 
 const calculateHappiness = settlement => {
-	const { stability, supply, housing, population } = settlement;
+	const { environment, stability, supply, housing, population } = settlement;
 	const freeHouses = Math.max(0, housing - population);
 
 	const stabilityMod = percentageToModifier(stability, 25, { lowerStart: 30, upperEnd: 60 });
 	const supplyMod = percentageToModifier(supply, 15, { lowerStart: 5, lowerEnd: 0, upperStart: 10, upperEnd: 50 });
 	const housingMod = percentageToModifier(freeHouses, 20, { lowerStart: 2, lowerEnd: 0, upperStart: 7, upperEnd: 20 });
+	const environmentMod = percentageToModifier(environment, 10, {
+		lowerEnd: 10,
+		lowerStart: 25,
+		upperStart: 50,
+		upperEnd: 70,
+	});
 
-	return clamp(40 + stabilityMod + supplyMod + housingMod);
+	return clamp(35 + stabilityMod + supplyMod + housingMod + environmentMod);
 }
 
 const calculateRole = (individual, settlement, params) => {
@@ -83,9 +90,11 @@ const updatePartners = (individuals) => {
 			const partnerIndex = individuals.findIndex(partner => partner.key === individual.partner);
 			const partner = individuals[partnerIndex];
 
-			if (partner.dead || individual.dead) {
+			if ((partnerIndex === -1 || partner.dead) || individual.dead) {
 				individual.partner = null;
-				individuals[partnerIndex].partner = null;
+				if (partnerIndex !== -1) {
+					individuals[partnerIndex].partner = null;
+				}
 			}
 
 			if (individual.partner) {
@@ -171,12 +180,14 @@ export const updateIndividuals = (individuals, settlements, params) => {
 		individuals = individuals.filter(i => !i.dead);
 		individual.age++;
 
+		individual.role = calculateRole(individual, settlement, params);
+
 		const deathChance = percentageToModifier(individual.age, 100, {
 			lowerStart: 0,
 			lowerEnd: 0,
 			upperStart: 40,
 			upperEnd: 90
-		});
+		}) + (settlement.supply < individuals.length ? 25 : 0);
 		const diceRoll = seedrandom(individual.age + params.base)();
 		if (deathChance > diceRoll * 100) {
 			individual.dead = true;
@@ -192,14 +203,22 @@ export const updateIndividuals = (individuals, settlements, params) => {
 		output.push(individual);
 	}
 
-
+	const born = [];
 	output.filter(i => i.pregnant).forEach(individual => {
 		const settlement = settlements.find(s => s.key === individual.settlement);
 		const partner = individuals.find(p => p.key === individual.partner);
 
 		const parentSeed = individual.seed + (partner?.seed || 'nopartner');
-		output.push(createIndividual(settlement, parentSeed, params));
+		const bornIndividual = createIndividual(settlement, parentSeed, params);
+		output.push(bornIndividual);
+		born.push(bornIndividual);
 	});
 
-	return output;
+	const individualsResult = updatePartners(output).filter(i => !i.dead);
+	const dead = output.filter(i => !!i.dead);
+	return {
+		individuals: individualsResult,
+		dead,
+		born
+	};
 }
